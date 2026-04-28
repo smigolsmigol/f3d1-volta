@@ -1,0 +1,17 @@
+[package]
+name = "f3d1-volta-core"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+description = "Phase 0 spike: pyo3 + tokio + Python callback interop for the f3d1-volta keystone."
+
+[lib]
+name = "_f3d1_volta_core"
+crate-type = ["cdylib"]
+
+[dependencies]
+pyo3 = { version = "0.23", features = ["extension-module"] }
+tokio = { version = "1.42", features = ["rt-multi-thread", "macros", "sync"] }

@@ -1,0 +1,17 @@
+target/
+.venv/
+__pycache__/
+*.pyc
+*.pyd
+*.so
+*.dll
+*.pdb
+*.lib
+*.exp
+.pytest_cache/
+dist/
+build/
+*.egg-info/
+.vscode/
+.idea/
+.DS_Store
