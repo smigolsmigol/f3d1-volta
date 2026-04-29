@@ -13,5 +13,8 @@ name = "_f3d1_volta_core"
 crate-type = ["cdylib"]
 
 [dependencies]
-pyo3 = { version = "0.23", features = ["extension-module"] }
+# Phase 0.5 consolidation prereq (2026-04-30): bumped from 0.23 to =0.28.3
+# (exact pin), aligning with f3dx workspace post-Phase-A. Required for
+# wata Phase 0.5 since wata-core needs pyo3 >= 0.28 for arrow-pyarrow 58.x.
+pyo3 = { version = "=0.28.3", features = ["extension-module"] }
 tokio = { version = "1.42", features = ["rt-multi-thread", "macros", "sync"] }

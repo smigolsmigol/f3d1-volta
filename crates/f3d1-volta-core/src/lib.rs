@@ -18,8 +18,14 @@
 //!      runs while the GIL is held).
 
 use pyo3::prelude::*;
+use pyo3::types::PyList;
 use std::time::Instant;
 use tokio::runtime::Runtime;
+
+// PyObject was removed from prelude in pyo3 0.28; the canonical type is
+// Py<PyAny>. This local alias keeps the signatures readable without
+// re-exporting from a path that has moved between releases.
+type PyObject = pyo3::Py<pyo3::PyAny>;
 
 /// Run `callback(input)` for each `input` in `inputs`, in parallel
 /// tokio tasks. Each task acquires the GIL only when it calls the
@@ -44,9 +50,9 @@ pub fn run_parallel(
         for input in inputs {
             // Clone the callback PyObject for each task. PyObject is
             // cheap to clone (it's a smart pointer / Py<PyAny>).
-            let cb = Python::with_gil(|py| callback.clone_ref(py));
+            let cb = Python::attach(|py| callback.clone_ref(py));
             let handle = tokio::task::spawn_blocking(move || {
-                Python::with_gil(|py| -> PyResult<PyObject> {
+                Python::attach(|py| -> PyResult<PyObject> {
                     let result = cb.call1(py, (input,))?;
                     Ok(result)
                 })
@@ -76,25 +82,30 @@ pub fn run_parallel_timed(
     Ok((out, t0.elapsed().as_secs_f64()))
 }
 
+#[pyfunction]
+fn run_parallel_py<'py>(
+    py: Python<'py>,
+    callback: PyObject,
+    inputs: Vec<PyObject>,
+) -> PyResult<Bound<'py, PyList>> {
+    let out = py.detach(|| run_parallel(callback, inputs))?;
+    PyList::new(py, out)
+}
+
+#[pyfunction]
+fn run_parallel_timed_py<'py>(
+    py: Python<'py>,
+    callback: PyObject,
+    inputs: Vec<PyObject>,
+) -> PyResult<(Bound<'py, PyList>, f64)> {
+    let (out, elapsed) = py.detach(|| run_parallel_timed(callback, inputs))?;
+    Ok((PyList::new(py, out)?, elapsed))
+}
+
 #[pymodule]
 fn _f3d1_volta_core(m: &Bound<'_, PyModule>) -> PyResult<()> {
-    #[pyfn(m)]
-    fn run_parallel_py(
-        py: Python<'_>,
-        callback: PyObject,
-        inputs: Vec<PyObject>,
-    ) -> PyResult<Vec<PyObject>> {
-        py.allow_threads(|| run_parallel(callback, inputs))
-    }
-
-    #[pyfn(m)]
-    fn run_parallel_timed_py(
-        py: Python<'_>,
-        callback: PyObject,
-        inputs: Vec<PyObject>,
-    ) -> PyResult<(Vec<PyObject>, f64)> {
-        py.allow_threads(|| run_parallel_timed(callback, inputs))
-    }
+    m.add_function(wrap_pyfunction!(run_parallel_py, m)?)?;
+    m.add_function(wrap_pyfunction!(run_parallel_timed_py, m)?)?;
     Ok(())
 }
 
