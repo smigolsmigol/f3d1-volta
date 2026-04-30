@@ -15,3 +15,11 @@ build/
 .vscode/
 .idea/
 .DS_Store
+
+# secrets defense-in-depth (no current leak; prevent accidental commit)
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
